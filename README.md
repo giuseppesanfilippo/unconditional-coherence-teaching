@@ -33,3 +33,8 @@ The app also computes the coherent extension interval for a further event `F`:
 z'=\min\sum_k\lambda'_k q_{k,F},\qquad
 z''=\max\sum_k\lambda''_k q_{k,F}.
 \]
+
+The interface displays each constituent in LaTeX. For example, a constituent
+with `A` true and `B` false is written as
+\(C=A\land\overline{B}\). The extension examples include the conjunction
+`A and B` and the union `A or B`.

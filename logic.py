@@ -81,6 +81,33 @@ def _evaluate(tree: ast.AST, environment: Mapping[str, bool]) -> bool:
     raise TypeError(f"Unsupported syntax node: {type(tree).__name__}")
 
 
+def _latex_name(name: str) -> str:
+    if "_" in name:
+        base, suffix = name.split("_", 1)
+        return rf"{base}_{{{suffix}}}"
+    return name
+
+
+def _latex_tree(tree: ast.AST) -> str:
+    if isinstance(tree, ast.Name):
+        return _latex_name(tree.id)
+    if isinstance(tree, ast.Constant):
+        return r"\top" if tree.value else r"\bot"
+    if isinstance(tree, ast.BoolOp):
+        connective = r"\land" if isinstance(tree.op, ast.And) else r"\lor"
+        return "(" + f" {connective} ".join(
+            _latex_tree(value) for value in tree.values
+        ) + ")"
+    if isinstance(tree, ast.UnaryOp) and isinstance(tree.op, ast.Not):
+        return rf"\overline{{{_latex_tree(tree.operand)}}}"
+    raise TypeError(f"Unsupported syntax node: {type(tree).__name__}")
+
+
+def formula_to_latex(formula: str) -> str:
+    """Convert the app's Boolean formula syntax to a compact LaTeX formula."""
+    return _latex_tree(_parse(formula))
+
+
 def build_constituents(
     events: Sequence[Event], relations: Sequence[str] = ()
 ) -> tuple[Constituent, ...]:

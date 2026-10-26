@@ -8,7 +8,12 @@ from pathlib import Path
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from logic import Event, check_coherence, coherent_extension_interval  # noqa: E402
+from logic import (  # noqa: E402
+    Event,
+    check_coherence,
+    coherent_extension_interval,
+    formula_to_latex,
+)
 
 
 st.set_page_config(page_title="Unconditional Coherence", page_icon="∴", layout="wide")
@@ -38,10 +43,34 @@ EXAMPLES = {
 }
 
 
+EXTENSION_EXAMPLES = {
+    "Custom extension": {
+        "description": "Enter any further event F below.",
+        "events": None,
+        "relations": None,
+        "target": "C",
+    },
+    "Conjunction A and B": {
+        "description": "Find the coherent interval for P(A and B).",
+        "events": [("A", 0.6), ("B", 0.4)],
+        "relations": "",
+        "target": "A and B",
+    },
+    "Union A or B": {
+        "description": "Find the coherent interval for P(A or B).",
+        "events": [("A", 0.6), ("B", 0.4)],
+        "relations": "",
+        "target": "A or B",
+    },
+}
+
+
 def _initialise() -> None:
     st.session_state.setdefault("example", "Custom assessment")
     st.session_state.setdefault("events", EXAMPLES["Custom assessment"]["events"])
     st.session_state.setdefault("relations", "")
+    st.session_state.setdefault("extension_example", "Custom extension")
+    st.session_state.setdefault("extension_target", "C")
 
 
 def _load_example() -> None:
@@ -63,7 +92,36 @@ def _remove_event() -> None:
         st.session_state.events.pop()
 
 
-def _render_result(result) -> None:
+def _load_extension_example() -> None:
+    example = EXTENSION_EXAMPLES[st.session_state.extension_example]
+    if example["events"] is not None:
+        st.session_state.events = list(example["events"])
+        st.session_state.relations = example["relations"]
+        for index in range(10):
+            st.session_state.pop(f"formula_{index}", None)
+            st.session_state.pop(f"probability_{index}", None)
+    st.session_state.extension_target = example["target"]
+
+
+def _constituent_latex(constituent, formulas: list[str]) -> str:
+    terms = []
+    for status, formula in zip(constituent.statuses, formulas):
+        latex_formula = formula_to_latex(formula)
+        terms.append(latex_formula if status else rf"\overline{{{latex_formula}}}")
+    return r"\,\land\,".join(terms) or r"\top"
+
+
+def _show_constituent_latex(constituents, formulas: list[str]) -> None:
+    st.subheader("Constituents in LaTeX")
+    st.caption(
+        r"A false event is written with an overline; for example "
+        r"\(C=A\land\overline{B}\)."
+    )
+    for number, constituent in enumerate(constituents, start=1):
+        st.latex(rf"C_{{{number}}} = {_constituent_latex(constituent, formulas)}")
+
+
+def _render_result(result, events: list[Event]) -> None:
     if result.coherent:
         st.success(result.message)
     else:
@@ -87,6 +145,10 @@ def _render_result(result) -> None:
         "Several atoms may have the same truth pattern. They are represented by one constituent."
     )
     st.dataframe(rows, hide_index=True, use_container_width=True)
+    _show_constituent_latex(
+        result.constituents,
+        [event.formula for event in events],
+    )
 
     if result.coherent and result.lambda_solution is not None:
         st.subheader("Convex-hull representation")
@@ -109,7 +171,7 @@ def _render_result(result) -> None:
         )
 
 
-def _render_extension(result) -> None:
+def _render_extension(result, formulas: list[str]) -> None:
     st.success(f"Coherent extension interval: [{result.lower:.6f}, {result.upper:.6f}]")
     if abs(result.lower - result.upper) <= 1e-9:
         st.info("The extension is unique.")
@@ -144,6 +206,7 @@ def _render_extension(result) -> None:
             }
         )
     st.dataframe(rows, hide_index=True, use_container_width=True)
+    _show_constituent_latex(result.constituents, formulas)
 
 
 _initialise()
@@ -212,11 +275,18 @@ if st.button("Check coherence", type="primary"):
             for relation in st.session_state.relations.splitlines()
             if relation.strip()
         )
-        _render_result(check_coherence(events, relations))
+        _render_result(check_coherence(events, relations), events)
     except Exception as error:
         st.error(f"Input error: {error}")
 
 st.subheader("4. Extend the assessment to one additional event")
+st.selectbox(
+    "Extension example",
+    tuple(EXTENSION_EXAMPLES),
+    key="extension_example",
+)
+st.caption(EXTENSION_EXAMPLES[st.session_state.extension_example]["description"])
+st.button("Load selected extension example", on_click=_load_extension_example)
 st.write(
     "Enter a new unconditional event F. The app computes all values z=P(F) "
     "that preserve coherence of the original assessment."
@@ -243,7 +313,11 @@ if st.button("Compute coherent extension"):
             st.session_state.extension_target,
             relations,
         )
-        _render_extension(extension)
+        _render_extension(
+            extension,
+            [event.formula for event in events]
+            + [st.session_state.extension_target],
+        )
     except Exception as error:
         st.error(f"Extension error: {error}")
 
