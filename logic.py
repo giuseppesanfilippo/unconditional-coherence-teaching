@@ -3,22 +3,19 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 from itertools import product
-from typing import Mapping, Sequence
+from typing import Mapping, NamedTuple, Sequence
 
 import numpy as np
 from scipy.optimize import linprog
 
 
-@dataclass(frozen=True)
-class Event:
+class Event(NamedTuple):
     formula: str
     probability: float
 
 
-@dataclass(frozen=True)
-class Constituent:
+class Constituent(NamedTuple):
     statuses: tuple[bool, ...]
     witnesses: tuple[dict[str, bool], ...]
 
@@ -27,16 +24,14 @@ class Constituent:
         return np.asarray(self.statuses, dtype=float)
 
 
-@dataclass(frozen=True)
-class CoherenceResult:
+class CoherenceResult(NamedTuple):
     coherent: bool
     constituents: tuple[Constituent, ...]
     lambda_solution: np.ndarray | None
     message: str
 
 
-@dataclass(frozen=True)
-class ExtensionResult:
+class ExtensionResult(NamedTuple):
     lower: float
     upper: float
     constituents: tuple[Constituent, ...]
