@@ -191,6 +191,45 @@ def _explicit_system_latex(events: list[Event], constituents) -> str:
     return rf"\left\{{\begin{{aligned}}{rows}\end{{aligned}}\right."
 
 
+def _extension_system_latex(events: list[Event], constituents, marker: str) -> str:
+    """Build the feasible linear system for one extension optimization."""
+    equations = []
+    for event_index, event in enumerate(events):
+        active = [
+            number
+            for number, constituent in enumerate(constituents, start=1)
+            if constituent.statuses[event_index]
+        ]
+        left_side = (
+            " + ".join(rf"\lambda{marker}_{{{number}}}" for number in active)
+            or "0"
+        )
+        equations.append(rf"{left_side} &= {event.probability:.6g}")
+    number_of_constituents = len(constituents)
+    equations.append(
+        rf"\lambda{marker}_1 + \cdots + \lambda{marker}_{{{number_of_constituents}}} &= 1"
+    )
+    equations.append(
+        rf"\lambda{marker}_k &\geq 0,\qquad k=1,\ldots,{number_of_constituents}"
+    )
+    rows = r" \\[4pt] ".join(equations)
+    return rf"\left\{{\begin{{aligned}}{rows}\end{{aligned}}\right."
+
+
+def _extension_objective_latex(constituents, marker: str, optimization: str) -> str:
+    """Build the explicit objective for the target event."""
+    target_active = [
+        number
+        for number, constituent in enumerate(constituents, start=1)
+        if constituent.statuses[-1]
+    ]
+    objective = (
+        " + ".join(rf"\lambda{marker}_{{{number}}}" for number in target_active)
+        or "0"
+    )
+    return rf"z{marker}{optimization}\left({objective}\right)"
+
+
 def _render_result(result, events: list[Event]) -> None:
     if result.coherent:
         st.success(result.message)
@@ -247,7 +286,7 @@ def _render_result(result, events: list[Event]) -> None:
         )
 
 
-def _render_extension(result, formulas: list[str]) -> None:
+def _render_extension(result, events: list[Event], formulas: list[str]) -> None:
     st.success(f"Coherent extension interval: [{result.lower:.6f}, {result.upper:.6f}]")
     if abs(result.lower - result.upper) <= 1e-9:
         st.info("The extension is unique.")
@@ -259,6 +298,18 @@ def _render_extension(result, formulas: list[str]) -> None:
         "The last coordinate of each q-vector records whether the new event F "
         "is true in that constituent."
     )
+    st.subheader("Constraints used for the extension bounds")
+    st.write(
+        "The two optimizations use the same feasible set. Only the objective "
+        "changes: the lower bound minimizes the total weight of constituents "
+        "where F is true, while the upper bound maximizes it."
+    )
+    st.markdown("For the lower bound:")
+    st.latex(_extension_objective_latex(result.constituents, "'", "=\\min"))
+    st.latex(_extension_system_latex(events, result.constituents, "'"))
+    st.markdown("For the upper bound:")
+    st.latex(_extension_objective_latex(result.constituents, "''", "=\\max"))
+    st.latex(_extension_system_latex(events, result.constituents, "''"))
     rows = []
     for number, (constituent, lower_value, upper_value) in enumerate(
         zip(
@@ -451,6 +502,7 @@ if st.button("Compute coherent extension"):
         )
         _render_extension(
             extension,
+            events,
             [event.formula for event in events]
             + [st.session_state.extension_target],
         )

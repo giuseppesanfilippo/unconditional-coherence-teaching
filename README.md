@@ -50,6 +50,11 @@ z'=\min\sum_k\lambda'_k q_{k,F},\qquad
 z''=\max\sum_k\lambda''_k q_{k,F}.
 \]
 
+For both bounds, the interface displays the complete feasible system: the
+original assessed-event equations, the normalization equation, and the
+non-negativity constraints. The lower bound minimizes the total weight of
+constituents in which `F` is true; the upper bound maximizes the same quantity.
+
 The interface displays each constituent in LaTeX. For example, a constituent
 with `A` true and `B` false is written as
 \(C=A\land\overline{B}\). Repeated or logically redundant factors are
