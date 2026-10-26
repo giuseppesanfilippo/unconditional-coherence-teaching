@@ -12,7 +12,7 @@ from logic import (  # noqa: E402
     Event,
     check_coherence,
     coherent_extension_interval,
-    formula_to_latex,
+    constituent_formula_to_latex,
 )
 
 
@@ -104,18 +104,15 @@ def _load_extension_example() -> None:
 
 
 def _constituent_latex(constituent, formulas: list[str]) -> str:
-    terms = []
-    for status, formula in zip(constituent.statuses, formulas):
-        latex_formula = formula_to_latex(formula)
-        terms.append(latex_formula if status else rf"\overline{{{latex_formula}}}")
-    return r"\,\land\,".join(terms) or r"\top"
+    return constituent_formula_to_latex(formulas, constituent.statuses)
 
 
 def _show_constituent_latex(constituents, formulas: list[str]) -> None:
     st.subheader("Constituents in LaTeX")
     st.caption(
         r"A false event is written with an overline; for example "
-        r"\(C=A\land\overline{B}\)."
+        r"\(C=A\land\overline{B}\). Repeated and absorbed factors are "
+        "automatically simplified."
     )
     for number, constituent in enumerate(constituents, start=1):
         st.latex(rf"C_{{{number}}} = {_constituent_latex(constituent, formulas)}")

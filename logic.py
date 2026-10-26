@@ -108,6 +108,91 @@ def formula_to_latex(formula: str) -> str:
     return _latex_tree(_parse(formula))
 
 
+def _flatten_and(tree: ast.AST) -> list[ast.AST]:
+    if isinstance(tree, ast.BoolOp) and isinstance(tree.op, ast.And):
+        factors: list[ast.AST] = []
+        for value in tree.values:
+            factors.extend(_flatten_and(value))
+        return factors
+    return [tree]
+
+
+def _factor_key(tree: ast.AST) -> str:
+    return ast.dump(tree, annotate_fields=False, include_attributes=False)
+
+
+def _simplify_conjunction(terms: Sequence[ast.AST]) -> ast.AST:
+    factors: list[ast.AST] = []
+    for term in terms:
+        factors.extend(_flatten_and(term))
+
+    unique: dict[str, ast.AST] = {}
+    for factor in factors:
+        key = _factor_key(factor)
+        if key not in unique:
+            unique[key] = factor
+
+    factors = list(unique.values())
+    symbols = sorted({name for factor in factors for name in _names(factor)})
+
+    def conjunction_is_possible(candidate: Sequence[ast.AST]) -> bool:
+        for values in product((False, True), repeat=len(symbols)):
+            environment = dict(zip(symbols, values))
+            if all(_evaluate(factor, environment) for factor in candidate):
+                return True
+        return False
+
+    # A and not A would be contradictory. It should not occur for a reachable
+    # constituent, but handling it makes the simplifier safe for all inputs.
+    if not conjunction_is_possible(factors):
+        return ast.Constant(value=False)
+
+    # Remove every factor implied by the remaining factors. This covers exact
+    # duplicates, absorption (A and (A or B)), and logical redundancies such as
+    # not A and not B and not (A and B).
+    changed = True
+    while changed and factors:
+        changed = False
+        # Prefer removing a compound factor before an elementary factor. For
+        # example, keep A and not B rather than keeping not B and (A or B).
+        candidate_indices = sorted(
+            range(len(factors)),
+            key=lambda index: len(list(ast.walk(factors[index]))),
+            reverse=True,
+        )
+        for index in candidate_indices:
+            factor = factors[index]
+            remaining = factors[:index] + factors[index + 1:]
+            implied = True
+            for values in product((False, True), repeat=len(symbols)):
+                environment = dict(zip(symbols, values))
+                if all(_evaluate(item, environment) for item in remaining):
+                    if not _evaluate(factor, environment):
+                        implied = False
+                        break
+            if implied:
+                factors.pop(index)
+                changed = True
+                break
+
+    if not factors:
+        return ast.Constant(value=True)
+    if len(factors) == 1:
+        return factors[0]
+    return ast.BoolOp(op=ast.And(), values=factors)
+
+
+def constituent_formula_to_latex(
+    formulas: Sequence[str], statuses: Sequence[bool]
+) -> str:
+    """Return a simplified LaTeX formula for one logical constituent."""
+    terms = []
+    for formula, status in zip(formulas, statuses):
+        tree = _parse(formula)
+        terms.append(tree if status else ast.UnaryOp(op=ast.Not(), operand=tree))
+    return _latex_tree(_simplify_conjunction(terms))
+
+
 def build_constituents(
     events: Sequence[Event], relations: Sequence[str] = ()
 ) -> tuple[Constituent, ...]:

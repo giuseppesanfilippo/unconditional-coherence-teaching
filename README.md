@@ -36,5 +36,7 @@ z''=\max\sum_k\lambda''_k q_{k,F}.
 
 The interface displays each constituent in LaTeX. For example, a constituent
 with `A` true and `B` false is written as
-\(C=A\land\overline{B}\). The extension examples include the conjunction
-`A and B` and the union `A or B`.
+\(C=A\land\overline{B}\). Repeated or logically redundant factors are
+simplified automatically; for instance,
+\(A\land B\land(A\land B)=A\land B\). The extension examples include the
+conjunction `A and B` and the union `A or B`.
