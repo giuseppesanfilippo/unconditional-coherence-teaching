@@ -430,5 +430,6 @@ if st.button("Compute coherent extension"):
         st.error(f"Extension error: {error}")
 
 st.caption(
-    "Boolean syntax: and, or, not, parentheses. Empty formulas are interpreted as True."
+    "Boolean syntax: and, or, not, implies, parentheses. Relations may also use "
+    "= True or = False. Empty formulas are interpreted as True."
 )
