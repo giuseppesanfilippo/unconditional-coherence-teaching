@@ -260,15 +260,16 @@ def _render_extension(result, formulas: list[str]) -> None:
 _initialise()
 st.title("Coherence of unconditional assessments")
 st.markdown(
-    r"""
-    This teaching tool illustrates de Finetti's criterion for a finite assessment
-    \(\mathcal{P}=(p_1,\ldots,p_n)\) on unconditional events
-    \(\mathcal{F}=(E_1,\ldots,E_n)\). It constructs the logically possible
-    constituents \(C_k\), associates with each one a point
-    \(q_k\in\{0,1\}^n\), and checks whether
-    \(\mathbf{p}=(p_1,\ldots,p_n)\) belongs to their convex hull:
-    """
+    "This teaching tool illustrates de Finetti's criterion for a finite "
+    "assessment on unconditional events."
 )
+st.latex(r"\mathcal{P}=(p_1,\ldots,p_n),\qquad \mathcal{F}=(E_1,\ldots,E_n)")
+st.markdown(
+    "It constructs the logically possible constituents and associates with "
+    "each constituent a zero-one point."
+)
+st.latex(r"C_k\longmapsto q_k\in\{0,1\}^n")
+st.markdown("The assessment is coherent when its probability vector belongs to the convex hull:")
 st.latex(
     r"""
     \mathbf{p}=\sum_k\lambda_kq_k,\qquad
@@ -278,29 +279,33 @@ st.latex(
 
 with st.expander("What is the idea?", expanded=True):
     st.markdown(
-        r"""
-        An **atom** is a complete truth assignment to the primitive propositions.
-        Logical relations remove impossible atoms. Atoms that give the same truth
-        pattern for \(E_1,\ldots,E_n\) are grouped into one **logical constituent**
-        \(C_k\). Its coordinates form \(q_k\): the \(i\)-th coordinate is \(1\) if
-        \(E_i\) is true in \(C_k\), and \(0\) otherwise.
-
-        The assessment is coherent exactly when there are non-negative weights
-        \(\lambda_k\) summing to one such that
-        \(\mathbf{p}=\sum_k\lambda_kq_k\). The displayed constituents are ordered
-        lexicographically from the pattern in which all assessed events are true
-        towards the pattern in which they are all false.
-        """
+        "An **atom** is a complete truth assignment to the primitive propositions. "
+        "Logical relations remove impossible atoms. Atoms with the same truth "
+        "pattern for the assessed events are grouped into one **logical constituent**."
     )
+    st.latex(r"C_k\longmapsto q_k=(q_{k1},\ldots,q_{kn})\in\{0,1\}^n")
+    st.markdown(
+        "The assessment is coherent exactly when non-negative weights can combine "
+        "the constituent points into the assessed probability vector. Constituents "
+        "are ordered from the all-true pattern towards the all-false pattern."
+    )
+    st.latex(r"\mathbf{p}=\sum_k\lambda_kq_k,\qquad \lambda_k\geq0,\qquad \sum_k\lambda_k=1")
 
 with st.expander("How to write logical relations"):
+    st.markdown("Each relation is required to be **true**. Enter one relation per line.")
     st.markdown(
-        r"""
-        Each relation is required to be **true**. For incompatible events
-        \(A\) and \(B\), enter `not (A and B)`. Equivalently, you may enter
-        `A and B = False`. To require a relation to hold, you may write for
-        example `A or B = True`. Use one relation per line.
-        """
+        "For incompatible events A and B, enter `not (A and B)` or "
+        "the equivalent `A and B = False`."
+    )
+    st.latex(r"A\land B=\bot")
+    st.markdown(
+        "For implication, `A implies B` means that whenever A is true, B must "
+        "be true. It is equivalent to entering `A and not (B) = False`."
+    )
+    st.latex(r"A\Rightarrow B\quad\Longleftrightarrow\quad A\land\overline{B}=\bot")
+    st.markdown(
+        "You may also write requirements such as `A or B = True`. Use `and`, `or`, "
+        "`not`, parentheses, and the optional suffix `= True` or `= False`."
     )
 
 st.subheader("1. Choose or enter an assessment")

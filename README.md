@@ -22,7 +22,14 @@ The Boolean syntax is `and`, `or`, `not`, and parentheses. Logical relations
 are required to be true and are entered one per line. For incompatible events,
 you can write either `not (A and B)` or the equivalent, more explicit form
 `A and B = False`. Similarly, `A or B = True` requires that at least one of
-the two events occurs. An empty relation is ignored.
+the two events occurs. Implication can be entered directly as `A implies B`;
+this means that `A and not (B) = False`, or, in mathematical notation,
+
+\[
+A\Rightarrow B\quad\Longleftrightarrow\quad A\land\overline{B}=\bot.
+\]
+
+An empty relation is ignored.
 
 ## Educational interpretation
 

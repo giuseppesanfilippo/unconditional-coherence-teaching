@@ -63,6 +63,14 @@ def _parse(formula: str) -> ast.AST:
 def _parse_relation(relation: str) -> ast.AST:
     """Parse a relation, allowing the didactic form ``formula = True/False``."""
     relation = relation.strip()
+    implication = re.fullmatch(r"(.+?)\s+implies\s+(.+)", relation, flags=re.IGNORECASE)
+    if implication:
+        antecedent = _parse(implication.group(1))
+        consequent = _parse(implication.group(2))
+        return ast.BoolOp(
+            op=ast.Or(),
+            values=[ast.UnaryOp(op=ast.Not(), operand=antecedent), consequent],
+        )
     match = re.fullmatch(r"(.+?)\s*=\s*(True|False)", relation, flags=re.IGNORECASE)
     if match:
         tree = _parse(match.group(1))
