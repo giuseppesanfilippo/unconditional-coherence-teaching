@@ -35,6 +35,15 @@ class CoherenceResult:
     message: str
 
 
+@dataclass(frozen=True)
+class ExtensionResult:
+    lower: float
+    upper: float
+    constituents: tuple[Constituent, ...]
+    lower_lambda: np.ndarray
+    upper_lambda: np.ndarray
+
+
 def _parse(formula: str) -> ast.AST:
     formula = formula.strip() or "True"
     try:
@@ -139,4 +148,64 @@ def check_coherence(
         constituents=constituents,
         lambda_solution=None,
         message="The assessment is incoherent: p does not belong to the convex hull of the constituent points.",
+    )
+
+
+def coherent_extension_interval(
+    events: Sequence[Event],
+    target: str,
+    relations: Sequence[str] = (),
+) -> ExtensionResult:
+    """Compute the coherent interval for one additional unconditional event.
+
+    The target is appended to the assessment with an unknown probability z.
+    If q_k is the point of a constituent for the enlarged family, then
+    z = sum_k lambda_k q_{k,target}.  We minimize and maximize this quantity
+    subject to the original assessment equations and sum(lambda)=1.
+    """
+    base_result = check_coherence(events, relations)
+    if not base_result.coherent:
+        raise ValueError(
+            "A coherent extension can be computed only from a coherent assessment."
+        )
+
+    enlarged_events = list(events) + [Event(target, 0.0)]
+    constituents = build_constituents(enlarged_events, relations)
+    if not constituents:
+        raise ValueError("The logical relations admit no possible constituent.")
+
+    Q = np.vstack([constituent.q for constituent in constituents])
+    p = np.asarray([event.probability for event in events], dtype=float)
+    A_eq = np.vstack([Q[:, :-1].T, np.ones(len(constituents))])
+    b_eq = np.concatenate([p, [1.0]])
+    target_values = Q[:, -1]
+
+    lower_solution = linprog(
+        c=target_values,
+        A_eq=A_eq,
+        b_eq=b_eq,
+        bounds=[(0.0, None)] * len(constituents),
+        method="highs",
+    )
+    upper_solution = linprog(
+        c=-target_values,
+        A_eq=A_eq,
+        b_eq=b_eq,
+        bounds=[(0.0, None)] * len(constituents),
+        method="highs",
+    )
+    if (
+        not lower_solution.success
+        or lower_solution.x is None
+        or not upper_solution.success
+        or upper_solution.x is None
+    ):
+        raise ValueError("The extension optimization problem is infeasible.")
+
+    return ExtensionResult(
+        lower=float(lower_solution.fun),
+        upper=float(-upper_solution.fun),
+        constituents=constituents,
+        lower_lambda=lower_solution.x,
+        upper_lambda=upper_solution.x,
     )

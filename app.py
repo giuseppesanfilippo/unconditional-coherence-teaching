@@ -8,7 +8,7 @@ from pathlib import Path
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from logic import Event, check_coherence  # noqa: E402
+from logic import Event, check_coherence, coherent_extension_interval  # noqa: E402
 
 
 st.set_page_config(page_title="Unconditional Coherence", page_icon="∴", layout="wide")
@@ -109,6 +109,43 @@ def _render_result(result) -> None:
         )
 
 
+def _render_extension(result) -> None:
+    st.success(f"Coherent extension interval: [{result.lower:.6f}, {result.upper:.6f}]")
+    if abs(result.lower - result.upper) <= 1e-9:
+        st.info("The extension is unique.")
+    st.latex(
+        r"z'=\min\sum_k\lambda'_k q_{k,F},\qquad "
+        r"z''=\max\sum_k\lambda''_k q_{k,F}"
+    )
+    st.caption(
+        "The last coordinate of each q-vector records whether the new event F "
+        "is true in that constituent."
+    )
+    rows = []
+    for number, (constituent, lower_value, upper_value) in enumerate(
+        zip(
+            result.constituents,
+            result.lower_lambda,
+            result.upper_lambda,
+        ),
+        start=1,
+    ):
+        rows.append(
+            {
+                "constituent": f"C{number}",
+                "truth pattern": " / ".join(
+                    "true" if status else "false"
+                    for status in constituent.statuses
+                ),
+                "q (including F)": tuple(float(value) for value in constituent.q),
+                "lambda' (z')": float(lower_value),
+                "lambda'' (z'')": float(upper_value),
+                "witnesses": len(constituent.witnesses),
+            }
+        )
+    st.dataframe(rows, hide_index=True, use_container_width=True)
+
+
 _initialise()
 st.title("Coherence of unconditional assessments")
 st.write(
@@ -178,6 +215,37 @@ if st.button("Check coherence", type="primary"):
         _render_result(check_coherence(events, relations))
     except Exception as error:
         st.error(f"Input error: {error}")
+
+st.subheader("4. Extend the assessment to one additional event")
+st.write(
+    "Enter a new unconditional event F. The app computes all values z=P(F) "
+    "that preserve coherence of the original assessment."
+)
+st.text_input(
+    "New event F",
+    value="C",
+    key="extension_target",
+    help="Use the same Boolean syntax as for the assessed events.",
+)
+if st.button("Compute coherent extension"):
+    try:
+        events = [
+            Event(formula, probability)
+            for formula, probability in st.session_state.events
+        ]
+        relations = tuple(
+            relation.strip()
+            for relation in st.session_state.relations.splitlines()
+            if relation.strip()
+        )
+        extension = coherent_extension_interval(
+            events,
+            st.session_state.extension_target,
+            relations,
+        )
+        _render_extension(extension)
+    except Exception as error:
+        st.error(f"Extension error: {error}")
 
 st.caption(
     "Boolean syntax: and, or, not, parentheses. Empty formulas are interpreted as True."

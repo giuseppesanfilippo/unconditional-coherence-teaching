@@ -26,3 +26,10 @@ is ignored.
 Each constituent is a logically possible truth pattern for the assessed
 events. Its point `q_k` is the corresponding zero-one vector. Coherence means
 that the probability vector `p` is a convex combination of these points.
+
+The app also computes the coherent extension interval for a further event `F`:
+
+\[
+z'=\min\sum_k\lambda'_k q_{k,F},\qquad
+z''=\max\sum_k\lambda''_k q_{k,F}.
+\]
