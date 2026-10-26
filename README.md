@@ -39,6 +39,10 @@ that the probability vector `p` is a convex combination of these points. The
 constituents are ordered from the all-true pattern towards the all-false
 pattern. Each event row can be moved up or down or removed individually.
 
+After a coherent assessment, the app also displays the explicit linear system:
+one equation for each assessed event, the normalization equation, and the
+non-negativity constraints for the constituent weights.
+
 The app also computes the coherent extension interval for a further event `F`:
 
 \[

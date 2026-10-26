@@ -169,6 +169,28 @@ def _show_constituent_latex(constituents, formulas: list[str]) -> None:
         st.latex(rf"C_{{{number}}} = {_constituent_latex(constituent, formulas)}")
 
 
+def _explicit_system_latex(events: list[Event], constituents) -> str:
+    """Build the explicit convex-hull system for the displayed constituents."""
+    equations = []
+    for event_index, event in enumerate(events):
+        active = [
+            number
+            for number, constituent in enumerate(constituents, start=1)
+            if constituent.statuses[event_index]
+        ]
+        left_side = " + ".join(rf"\lambda_{{{number}}}" for number in active) or "0"
+        equations.append(rf"{left_side} &= {event.probability:.6g}")
+    number_of_constituents = len(constituents)
+    equations.append(
+        rf"\lambda_1 + \cdots + \lambda_{{{number_of_constituents}}} &= 1"
+    )
+    equations.append(
+        rf"\lambda_k &\geq 0,\qquad k=1,\ldots,{number_of_constituents}"
+    )
+    rows = r" \\[4pt] ".join(equations)
+    return rf"\left\{{\begin{{aligned}}{rows}\end{{aligned}}\right."
+
+
 def _render_result(result, events: list[Event]) -> None:
     if result.coherent:
         st.success(result.message)
@@ -201,6 +223,12 @@ def _render_result(result, events: list[Event]) -> None:
     if result.coherent and result.lambda_solution is not None:
         st.subheader("Convex-hull representation")
         st.latex(r"Q^T\lambda=p,\qquad \lambda_k\geq 0,\qquad \sum_k\lambda_k=1")
+        st.subheader("Explicit linear system")
+        st.caption(
+            "The equations follow the order of the assessed events above. "
+            "Each lambda coefficient corresponds to one displayed constituent."
+        )
+        st.latex(_explicit_system_latex(events, result.constituents))
         lambda_rows = []
         for number, (constituent, value) in enumerate(
             zip(result.constituents, result.lambda_solution), start=1
