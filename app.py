@@ -75,11 +75,10 @@ def _initialise() -> None:
 
 def _load_example() -> None:
     example = EXAMPLES[st.session_state.example]
-    st.session_state.events = list(example["events"])
+    events = list(example["events"])
+    st.session_state.events = events
     st.session_state.relations = example["relations"]
-    for index in range(10):
-        st.session_state.pop(f"formula_{index}", None)
-        st.session_state.pop(f"probability_{index}", None)
+    _set_event_widget_values(events)
 
 
 def _add_event() -> None:
@@ -92,14 +91,23 @@ def _remove_event() -> None:
         st.session_state.events.pop()
 
 
+def _set_event_widget_values(events: list[tuple[str, float]]) -> None:
+    """Synchronise the visible Streamlit widgets with a loaded example."""
+    for index, (formula, probability) in enumerate(events):
+        st.session_state[f"formula_{index}"] = formula
+        st.session_state[f"probability_{index}"] = float(probability)
+    for index in range(len(events), 10):
+        st.session_state.pop(f"formula_{index}", None)
+        st.session_state.pop(f"probability_{index}", None)
+
+
 def _load_extension_example() -> None:
     example = EXTENSION_EXAMPLES[st.session_state.extension_example]
     if example["events"] is not None:
-        st.session_state.events = list(example["events"])
+        events = list(example["events"])
+        st.session_state.events = events
         st.session_state.relations = example["relations"]
-        for index in range(10):
-            st.session_state.pop(f"formula_{index}", None)
-            st.session_state.pop(f"probability_{index}", None)
+        _set_event_widget_values(events)
     st.session_state.extension_target = example["target"]
 
 
