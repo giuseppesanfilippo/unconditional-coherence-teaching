@@ -82,13 +82,56 @@ def _load_example() -> None:
 
 
 def _add_event() -> None:
-    index = len(st.session_state.events) + 1
-    st.session_state.events.append((f"E{index}", 0.5))
+    index = len(st.session_state.events)
+    event = (f"E{index + 1}", 0.5)
+    st.session_state.events.append(event)
+    st.session_state[f"formula_{index}"] = event[0]
+    st.session_state[f"probability_{index}"] = event[1]
 
 
-def _remove_event() -> None:
-    if len(st.session_state.events) > 1:
-        st.session_state.events.pop()
+def _swap_event_widget_values(first: int, second: int) -> None:
+    for prefix in ("formula", "probability"):
+        first_key = f"{prefix}_{first}"
+        second_key = f"{prefix}_{second}"
+        first_value = st.session_state.get(first_key)
+        second_value = st.session_state.get(second_key)
+        if second_value is None:
+            st.session_state.pop(first_key, None)
+        else:
+            st.session_state[first_key] = second_value
+        if first_value is None:
+            st.session_state.pop(second_key, None)
+        else:
+            st.session_state[second_key] = first_value
+
+
+def _move_event(index: int, direction: int) -> None:
+    target = index + direction
+    events = list(st.session_state.events)
+    if not 0 <= target < len(events):
+        return
+    events[index], events[target] = events[target], events[index]
+    _swap_event_widget_values(index, target)
+    st.session_state.events = events
+
+
+def _remove_event_at(index: int) -> None:
+    events = list(st.session_state.events)
+    if len(events) <= 1 or not 0 <= index < len(events):
+        return
+    events.pop(index)
+    for position in range(index, len(events)):
+        source = position + 1
+        for prefix in ("formula", "probability"):
+            target_key = f"{prefix}_{position}"
+            source_key = f"{prefix}_{source}"
+            if source_key in st.session_state:
+                st.session_state[target_key] = st.session_state[source_key]
+            else:
+                st.session_state.pop(target_key, None)
+    for prefix in ("formula", "probability"):
+        st.session_state.pop(f"{prefix}_{len(events)}", None)
+    st.session_state.events = events
 
 
 def _set_event_widget_values(events: list[tuple[str, float]]) -> None:
@@ -216,21 +259,47 @@ def _render_extension(result, formulas: list[str]) -> None:
 
 _initialise()
 st.title("Coherence of unconditional assessments")
-st.write(
-    "This teaching tool illustrates de Finetti's criterion for probabilities "
-    "assigned to ordinary, non-conditioned events."
+st.markdown(
+    r"""
+    This teaching tool illustrates de Finetti's criterion for a finite assessment
+    \(\mathcal{P}=(p_1,\ldots,p_n)\) on unconditional events
+    \(\mathcal{F}=(E_1,\ldots,E_n)\). It constructs the logically possible
+    constituents \(C_k\), associates with each one a point
+    \(q_k\in\{0,1\}^n\), and checks whether
+    \(\mathbf{p}=(p_1,\ldots,p_n)\) belongs to their convex hull:
+    """
+)
+st.latex(
+    r"""
+    \mathbf{p}=\sum_k\lambda_kq_k,\qquad
+    \lambda_k\geq 0,\qquad \sum_k\lambda_k=1.
+    """
 )
 
 with st.expander("What is the idea?", expanded=True):
     st.markdown(
         r"""
         An **atom** is a complete truth assignment to the primitive propositions.
-        The logical relations remove impossible atoms. Atoms that produce the same
-        truth pattern for the assessed events form one **logical constituent**.
+        Logical relations remove impossible atoms. Atoms that give the same truth
+        pattern for \(E_1,\ldots,E_n\) are grouped into one **logical constituent**
+        \(C_k\). Its coordinates form \(q_k\): the \(i\)-th coordinate is \(1\) if
+        \(E_i\) is true in \(C_k\), and \(0\) otherwise.
 
-        If the events are \(E_1,\ldots,E_n\), each constituent has a point
-        \(q_k\in\{0,1\}^n\). The assessment \(p=(p_1,\ldots,p_n)\) is coherent
-        exactly when it is in the convex hull of these points.
+        The assessment is coherent exactly when there are non-negative weights
+        \(\lambda_k\) summing to one such that
+        \(\mathbf{p}=\sum_k\lambda_kq_k\). The displayed constituents are ordered
+        lexicographically from the pattern in which all assessed events are true
+        towards the pattern in which they are all false.
+        """
+    )
+
+with st.expander("How to write logical relations"):
+    st.markdown(
+        r"""
+        Each relation is required to be **true**. For incompatible events
+        \(A\) and \(B\), enter `not (A and B)`. Equivalently, you may enter
+        `A and B = False`. To require a relation to hold, you may write for
+        example `A or B = True`. Use one relation per line.
         """
     )
 
@@ -242,7 +311,7 @@ st.button("Load selected example", on_click=_load_example)
 st.subheader("2. Events and probabilities")
 updated_events = []
 for index, (formula, probability) in enumerate(st.session_state.events):
-    left, right = st.columns([3, 1])
+    left, right, controls = st.columns([3, 1, 2])
     formula = left.text_input(
         f"Event E{index + 1}", value=formula, key=f"formula_{index}"
     )
@@ -255,18 +324,47 @@ for index, (formula, probability) in enumerate(st.session_state.events):
         format="%.4f",
         key=f"probability_{index}",
     )
+    up, down, remove = controls.columns(3)
+    up.button(
+        "↑",
+        key=f"move_up_{index}",
+        on_click=_move_event,
+        args=(index, -1),
+        disabled=index == 0,
+        help="Move this event up",
+    )
+    down.button(
+        "↓",
+        key=f"move_down_{index}",
+        on_click=_move_event,
+        args=(index, 1),
+        disabled=index == len(st.session_state.events) - 1,
+        help="Move this event down",
+    )
+    remove.button(
+        "Remove",
+        key=f"remove_event_{index}",
+        on_click=_remove_event_at,
+        args=(index,),
+        disabled=len(st.session_state.events) == 1,
+        help="Remove this event",
+    )
     updated_events.append((formula, probability))
 st.session_state.events = updated_events
-left, right = st.columns([1, 1])
-left.button("Add event", on_click=_add_event)
-right.button("Remove last event", on_click=_remove_event)
+st.button("Add event", on_click=_add_event)
 
 st.subheader("3. Logical relations")
 st.text_area(
     "One relation per line",
     key="relations",
     height=90,
-    help="Use and, or, not, and parentheses. Example: not (A and B)",
+    help=(
+        "Relations are required to be true. Use and, or, not, parentheses, "
+        "and optionally = True or = False."
+    ),
+)
+st.caption(
+    "Examples: `not (A and B)` or `A and B = False` means that A and B are incompatible."
 )
 
 if st.button("Check coherence", type="primary"):

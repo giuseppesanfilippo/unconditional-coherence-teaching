@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import re
 from itertools import product
 from typing import Mapping, NamedTuple, Sequence
 
@@ -57,6 +58,19 @@ def _parse(formula: str) -> ast.AST:
         if isinstance(node, ast.Constant) and not isinstance(node.value, bool):
             raise ValueError(f"Only Boolean constants are allowed in {formula!r}.")
     return tree
+
+
+def _parse_relation(relation: str) -> ast.AST:
+    """Parse a relation, allowing the didactic form ``formula = True/False``."""
+    relation = relation.strip()
+    match = re.fullmatch(r"(.+?)\s*=\s*(True|False)", relation, flags=re.IGNORECASE)
+    if match:
+        tree = _parse(match.group(1))
+        required_value = match.group(2).lower() == "true"
+        if required_value:
+            return tree
+        return ast.UnaryOp(op=ast.Not(), operand=tree)
+    return _parse(relation)
 
 
 def _names(tree: ast.AST) -> set[str]:
@@ -196,7 +210,9 @@ def build_constituents(
         raise ValueError("Enter at least one event.")
 
     event_trees = [_parse(event.formula) for event in events]
-    relation_trees = [_parse(relation) for relation in relations if relation.strip()]
+    relation_trees = [
+        _parse_relation(relation) for relation in relations if relation.strip()
+    ]
     symbols: set[str] = set()
     for tree in event_trees + relation_trees:
         symbols |= _names(tree)
@@ -209,9 +225,13 @@ def build_constituents(
         pattern = tuple(_evaluate(tree, environment) for tree in event_trees)
         groups.setdefault(pattern, []).append(environment)
 
+    ordered_groups = sorted(
+        groups.items(),
+        key=lambda item: tuple(not status for status in item[0]),
+    )
     return tuple(
         Constituent(statuses=pattern, witnesses=tuple(witnesses))
-        for pattern, witnesses in groups.items()
+        for pattern, witnesses in ordered_groups
     )
 
 

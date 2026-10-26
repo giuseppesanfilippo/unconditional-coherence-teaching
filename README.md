@@ -18,14 +18,19 @@ python3 -m pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The Boolean syntax is `and`, `or`, `not`, and parentheses. An empty relation
-is ignored.
+The Boolean syntax is `and`, `or`, `not`, and parentheses. Logical relations
+are required to be true and are entered one per line. For incompatible events,
+you can write either `not (A and B)` or the equivalent, more explicit form
+`A and B = False`. Similarly, `A or B = True` requires that at least one of
+the two events occurs. An empty relation is ignored.
 
 ## Educational interpretation
 
 Each constituent is a logically possible truth pattern for the assessed
 events. Its point `q_k` is the corresponding zero-one vector. Coherence means
-that the probability vector `p` is a convex combination of these points.
+that the probability vector `p` is a convex combination of these points. The
+constituents are ordered from the all-true pattern towards the all-false
+pattern. Each event row can be moved up or down or removed individually.
 
 The app also computes the coherent extension interval for a further event `F`:
 
