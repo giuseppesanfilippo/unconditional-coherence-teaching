@@ -2,6 +2,7 @@
 
 An English Streamlit application for learning de Finetti's coherence criterion
 for finite assessments on unconditional events.
+Try the application online on [Streamlit](https://unconditional-coherence-teaching.streamlit.app).
 
 The application accepts Boolean event formulas, assessed probabilities, and
 logical relations. It constructs the logical constituents and checks whether
