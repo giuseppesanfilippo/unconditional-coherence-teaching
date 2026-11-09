@@ -22,23 +22,57 @@ st.set_page_config(page_title="Unconditional Coherence", page_icon="∴", layout
 EXAMPLES = {
     "Custom assessment": {
         "description": "Enter your own events and logical relations.",
+        "exercise": "",
         "events": [("A", 0.6), ("B", 0.4)],
         "relations": "",
     },
     "Two mutually exclusive events — coherent": {
         "description": "A and B cannot occur together; P(A)=0.4 and P(B)=0.3.",
+        "exercise": "",
         "events": [("A", 0.4), ("B", 0.3)],
         "relations": "not (A and B)",
     },
     "Two mutually exclusive events — incoherent": {
         "description": "The probabilities add to more than one, so coherence fails.",
+        "exercise": "",
         "events": [("A", 0.7), ("B", 0.6)],
         "relations": "not (A and B)",
     },
     "Complementary events": {
         "description": "B is the complement of A and P(A)=0.7, P(B)=0.3.",
+        "exercise": "",
         "events": [("A", 0.7), ("B", 0.3)],
         "relations": "A or B\nnot (A and B)",
+    },
+    "Exercise 1 — Covering events": {
+        "description": "E1, E2, and E3 cover Ω, while E1 and E2 are incompatible.",
+        "exercise": r"Given (E_1\vee E_2\vee E_3=\Omega) and (E_1\wedge E_2=\emptyset), find the constituents and check (P(E_1)=0.2, P(E_2)=0.5, P(E_3)=0.4).",
+        "events": [("E1", 0.2), ("E2", 0.5), ("E3", 0.4)],
+        "relations": "E1 or E2 or E3 = True\nE1 and E2 = False",
+    },
+    "Exercise 2 — Two intersections inside B": {
+        "description": "A and C are incompatible; assess A, B, C, A∧B, and B∧C.",
+        "exercise": r"Given (A\wedge C=\emptyset), check whether (P(A)=P(B)=P(C)=0.4) and (P(A\wedge B)=P(B\wedge C)=0.2) are coherent.",
+        "events": [("A", 0.4), ("B", 0.4), ("C", 0.4), ("A and B", 0.2), ("B and C", 0.2)],
+        "relations": "A and C = False",
+    },
+    "Exercise 3 — A, B, and the complement of A∨B": {
+        "description": "The assessment is designed to produce an infeasible lambda system.",
+        "exercise": r"Show that (P=(0.4,0.3,0.2)) on (mathcal F=\{A,B,A^cB^c\}) has no solution.",
+        "events": [("A", 0.4), ("B", 0.3), ("not A and not B", 0.2)],
+        "relations": "",
+    },
+    "Exercise 4 — Three disjoint events": {
+        "description": "A and B are incompatible, and C is incompatible with A∨B.",
+        "exercise": r"If (A\wedge B=\emptyset) and ((A\vee B)\wedge C=\emptyset), determine whether (P(A)=2/3, P(B)=1/12, P(C)=1/4) is coherent.",
+        "events": [("A", 2 / 3), ("B", 1 / 12), ("C", 1 / 4)],
+        "relations": "not (A and B)\nnot ((A or B) and C)",
+    },
+    "Exercise 5 — A∨B∨C is certain": {
+        "description": "At least one of A, B, and C must occur.",
+        "exercise": r"Given (A^cB^cC^c=\emptyset), check whether (P(A)=1/10, P(B)=3/10, P(C)=5/10) is coherent.",
+        "events": [("A", 0.1), ("B", 0.3), ("C", 0.5)],
+        "relations": "A or B or C = True",
     },
 }
 
@@ -390,6 +424,9 @@ with st.expander("How to write logical relations"):
 st.subheader("1. Choose or enter an assessment")
 st.selectbox("Example", tuple(EXAMPLES), key="example")
 st.caption(EXAMPLES[st.session_state.example]["description"])
+if EXAMPLES[st.session_state.example]["exercise"]:
+    with st.expander("Exercise statement", expanded=True):
+        st.markdown(EXAMPLES[st.session_state.example]["exercise"])
 st.button("Load selected example", on_click=_load_example)
 
 st.subheader("2. Events and probabilities")
