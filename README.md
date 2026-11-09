@@ -2,7 +2,6 @@
 
 An English Streamlit application for learning de Finetti's coherence criterion
 for finite assessments on unconditional events.
-Try the application online on [Streamlit](https://unconditional-coherence-teaching.streamlit.app).
 
 The application accepts Boolean event formulas, assessed probabilities, and
 logical relations. It constructs the logical constituents and checks whether
@@ -31,6 +30,21 @@ A\Rightarrow B\quad\Longleftrightarrow\quad A\land\overline{B}=\bot.
 \]
 
 An empty relation is ignored.
+
+## Included coherence exercises
+
+The example selector includes five exercises with their statements, event
+probabilities, and logical relations:
+
+1. (E_1\vee E_2\vee E_3=\Omega) with (E_1\wedge E_2=\emptyset);
+2. incompatible (A) and (C), with assessments on (A\wedge B) and
+   (B\wedge C);
+3. the assessment on ({A,B,A^cB^c}) whose lambda system is infeasible;
+4. three mutually disjoint events with probabilities
+   (2/3,1/12,1/4);
+5. (A^cB^cC^c=\emptyset) with probabilities (1/10,3/10,5/10).
+
+Exercises 1, 2, and 4 are coherent, while exercises 3 and 5 are incoherent.
 
 ## Educational interpretation
 
