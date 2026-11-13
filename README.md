@@ -3,6 +3,8 @@
 An English Streamlit application for learning de Finetti's coherence criterion
 for finite assessments on unconditional events.
 
+Try the app online: [Unconditional Coherence Teaching](https://unconditional-coherence-teaching.streamlit.app/).
+
 The application accepts Boolean event formulas, assessed probabilities, and
 logical relations. It constructs the logical constituents and checks whether
 the assessment belongs to their convex hull:
@@ -30,6 +32,9 @@ A\Rightarrow B\quad\Longleftrightarrow\quad A\land\overline{B}=\bot.
 \]
 
 An empty relation is ignored.
+For a partition of two or more events, enter `partition(A, B, C)` in the
+**Logical relations** field. This requires exactly one of the listed events
+to occur. Probability fields also accept arithmetic expressions such as `1/3`.
 
 ## Included coherence exercises
 

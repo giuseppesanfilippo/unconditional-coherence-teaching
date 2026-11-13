@@ -42,6 +42,11 @@ class ExtensionResult(NamedTuple):
 
 def _parse(formula: str) -> ast.AST:
     formula = formula.strip() or "True"
+    if re.match(r"(?i)^partition\s*\(", formula):
+        raise ValueError(
+            "partition(A, B, ...) is a logical relation. Enter it in "
+            "'3. Logical relations'; event fields contain only Boolean event formulas."
+        )
     try:
         tree = ast.parse(formula, mode="eval").body
     except SyntaxError as exc:
