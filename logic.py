@@ -63,6 +63,20 @@ def _parse(formula: str) -> ast.AST:
 def _parse_relation(relation: str) -> ast.AST:
     """Parse a relation, allowing the didactic form ``formula = True/False``."""
     relation = relation.strip()
+    try:
+        partition = ast.parse(relation, mode="eval").body
+    except SyntaxError:
+        partition = None
+    if isinstance(partition, ast.Call) and isinstance(partition.func, ast.Name) and partition.func.id.lower() == "partition":
+        if partition.keywords or len(partition.args) < 2:
+            raise ValueError("partition requires at least two events: partition(A, B, ...).")
+        members = [_parse(ast.unparse(arg)) for arg in partition.args]
+        union = ast.BoolOp(op=ast.Or(), values=members)
+        exclusions = [
+            ast.UnaryOp(op=ast.Not(), operand=ast.BoolOp(op=ast.And(), values=[left, right]))
+            for index, left in enumerate(members) for right in members[index + 1:]
+        ]
+        return ast.BoolOp(op=ast.And(), values=[union, *exclusions])
     implication = re.fullmatch(r"(.+?)\s+implies\s+(.+)", relation, flags=re.IGNORECASE)
     if implication:
         antecedent = _parse(implication.group(1))

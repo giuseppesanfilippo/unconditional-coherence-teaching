@@ -3,9 +3,29 @@
 from __future__ import annotations
 
 import sys
+import ast
+import operator
 from pathlib import Path
 
 import streamlit as st
+
+_OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv, ast.Pow: operator.pow}
+
+
+def _probability(value):
+    def calc(node):
+        if isinstance(node, ast.Constant) and type(node.value) in (int, float):
+            return float(node.value)
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+            v = calc(node.operand)
+            return v if isinstance(node.op, ast.UAdd) else -v
+        if isinstance(node, ast.BinOp) and type(node.op) in _OPS:
+            return _OPS[type(node.op)](calc(node.left), calc(node.right))
+        raise ValueError("Use only numbers, +, -, *, /, ** and parentheses.")
+    result = calc(ast.parse(str(value).replace(',', '.'), mode='eval').body)
+    if not 0 <= result <= 1:
+        raise ValueError("Probability must be between 0 and 1.")
+    return result
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from logic import (  # noqa: E402
@@ -120,7 +140,7 @@ def _add_event() -> None:
     event = (f"E{index + 1}", 0.5)
     st.session_state.events.append(event)
     st.session_state[f"formula_{index}"] = event[0]
-    st.session_state[f"probability_{index}"] = event[1]
+    st.session_state[f"probability_{index}"] = str(event[1])
 
 
 def _swap_event_widget_values(first: int, second: int) -> None:
@@ -172,7 +192,7 @@ def _set_event_widget_values(events: list[tuple[str, float]]) -> None:
     """Synchronise the visible Streamlit widgets with a loaded example."""
     for index, (formula, probability) in enumerate(events):
         st.session_state[f"formula_{index}"] = formula
-        st.session_state[f"probability_{index}"] = float(probability)
+        st.session_state[f"probability_{index}"] = str(probability)
     for index in range(len(events), 10):
         st.session_state.pop(f"formula_{index}", None)
         st.session_state.pop(f"probability_{index}", None)
@@ -436,13 +456,10 @@ for index, (formula, probability) in enumerate(st.session_state.events):
     formula = left.text_input(
         f"Event E{index + 1}", value=formula, key=f"formula_{index}"
     )
-    probability = right.number_input(
+    probability = right.text_input(
         f"P(E{index + 1})",
-        min_value=0.0,
-        max_value=1.0,
-        value=float(probability),
-        step=0.05,
-        format="%.4f",
+        value=str(probability),
+        help="Enter a number or expression such as 1/3 or 2*(1/4).",
         key=f"probability_{index}",
     )
     up, down, remove = controls.columns(3)
@@ -474,6 +491,15 @@ for index, (formula, probability) in enumerate(st.session_state.events):
 st.session_state.events = updated_events
 st.button("Add event", on_click=_add_event)
 
+st.markdown(
+    """**Examples of logical relations**
+
+1. Incompatibility of A and B: `A and B = False`
+2. Incompatibility of not (A) or not (B): `not (A) or not (B) = False`
+3. A implies B: `A and not (B) = False`
+4. Partition of A, B and C: `partition(A, B, C)` — exactly one event occurs.
+"""
+)
 st.subheader("3. Logical relations")
 st.text_area(
     "One relation per line",
@@ -481,7 +507,7 @@ st.text_area(
     height=90,
     help=(
         "Relations are required to be true. Use and, or, not, parentheses, "
-        "and optionally = True or = False."
+        "and optionally = True, = False, or partition(A, B, C)."
     ),
 )
 st.caption(
@@ -491,7 +517,7 @@ st.caption(
 if st.button("Check coherence", type="primary"):
     try:
         events = [
-            Event(formula, probability)
+            Event(formula, _probability(probability))
             for formula, probability in st.session_state.events
         ]
         relations = tuple(
@@ -524,7 +550,7 @@ st.text_input(
 if st.button("Compute coherent extension"):
     try:
         events = [
-            Event(formula, probability)
+            Event(formula, _probability(probability))
             for formula, probability in st.session_state.events
         ]
         relations = tuple(
